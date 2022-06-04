@@ -47,6 +47,8 @@ type CopyGraphOptions struct {
 	// If Concurrency is not specified, or the specified value is less
 	// or equal to 0, a default value will be used.
 	Concurrency int64
+	// Caching proxy for the target storage.
+	Cache content.Storage
 	// PreCopyHandler handles the current descriptor before copying it.
 	PreCopyHandler func(ctx context.Context, desc ocispec.Descriptor) error
 	// PostCopyHandler handles the current descriptor after copying it.
@@ -106,7 +108,10 @@ func Copy(ctx context.Context, src Target, srcRef string, dst Target, dstRef str
 // the destination CAS.
 func CopyGraph(ctx context.Context, src, dst content.Storage, root ocispec.Descriptor, opts CopyGraphOptions) error {
 	// use caching proxy on non-leaf nodes
-	proxy := cas.NewProxy(src, cas.NewMemory())
+	if opts.Cache == nil {
+		opts.Cache = cas.NewMemory()
+	}
+	proxy := cas.NewProxy(src, opts.Cache)
 
 	// track content status
 	tracker := status.NewTracker()
